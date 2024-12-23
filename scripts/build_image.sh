@@ -80,21 +80,20 @@ mkdir -p "$DOCKER_BUILD_DIR"
 echo "Generating Dockerfile for platform: $PLATFORM"
 envsubst < docker/Dockerfile.template > "$DOCKER_BUILD_DIR/Dockerfile"
 
-# Ensure buildx is available and create builder if needed
-if ! docker buildx inspect builder >/dev/null 2>&1; then
-    docker buildx create --name builder --use
-fi
-
 # Build the image using buildx
 echo "Building for platform: $PLATFORM ($ARCH)"
 echo "Using base image: $BASE_IMAGE:$BASE_TAG"
+
+# Ensure cache directory exists
+mkdir -p /tmp/.buildx-cache
 
 docker buildx build \
     --platform "$ARCH" \
     --file "$DOCKER_BUILD_DIR/Dockerfile" \
     --tag "raspberry-$PLATFORM:latest" \
     --cache-from "type=local,src=/tmp/.buildx-cache" \
-    --cache-to "type=local,dest=/tmp/.buildx-cache" \
+    --cache-to "type=local,dest=/tmp/.buildx-cache,mode=max" \
+    --progress=plain \
     --load \
     .
 

@@ -24,19 +24,35 @@ jobs:
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
+        id: buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            image=moby/buildkit:latest
 
       - name: Cache Docker layers
         uses: actions/cache@v4
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-${{ matrix.platform }}
+          key: buildx-${{ matrix.platform }}-${{ hashFiles('docker/Dockerfile.template') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.platform }}
+            buildx-${{ matrix.platform }}-
 
       - name: Make build script executable
         run: chmod +x scripts/build_image.sh
 
       - name: Build image for ${{ matrix.platform }}
+        env:
+          DOCKER_BUILDKIT: 1
+          BUILDKIT_PROGRESS: plain
         run: |
+          # Create a new builder instance
+          docker buildx create --use --name multiarch-builder
+
+          # Inspect the cache contents before build
+          ls -la /tmp/.buildx-cache || true
+
           ./scripts/build_image.sh --platform ${{ matrix.platform }}
+
+          # Move cache
+          docker buildx prune --force --all
