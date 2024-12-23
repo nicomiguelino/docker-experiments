@@ -93,6 +93,8 @@ docker buildx build \
     --platform "$ARCH" \
     --file "$DOCKER_BUILD_DIR/Dockerfile" \
     --tag "raspberry-$PLATFORM:latest" \
+    --cache-from "type=local,src=/tmp/.buildx-cache" \
+    --cache-to "type=local,dest=/tmp/.buildx-cache" \
     --load \
     .
 
